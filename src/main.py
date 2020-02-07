@@ -1,10 +1,9 @@
 # Importing packages
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import cv2
 import os
 from moviepy.editor import VideoFileClip
-from LaneDetection import find_lanes
+from LaneDetection import find_lanes, calibrate_camera
 
 # Environment variables
 TEST_IMAGES_DIRECTORY = 'test_images/'
@@ -16,7 +15,7 @@ DEBUGGING_MODE = True  # False to suppress debugging output
 
 
 # Function to test pipeline on test images
-def test_sample_images(test_image_dir, output_image_dir):
+def test_sample_images(test_image_dir, output_image_dir, calibration_matrix, calibration_dist):
     # Get test images
     image_paths = os.listdir(test_image_dir)
     if not os.path.exists(output_image_dir):
@@ -29,7 +28,7 @@ def test_sample_images(test_image_dir, output_image_dir):
 
     for image_path in image_paths:
         # Read the image into memory
-        image = mpimg.imread(f'{test_image_dir}{image_path}')
+        image = cv2.imread(f'{test_image_dir}{image_path}')
 
         # Show the original image
         ax = axes[ax_ctr]
@@ -67,5 +66,9 @@ def test_sample_videos(test_video_dir, output_video_dir):
 
 
 # START OF MAIN PROGRAM
-test_sample_images(TEST_IMAGES_DIRECTORY, TEST_IMAGES_OUTPUT_DIRECTORY)
-test_sample_videos(TEST_VIDEOS_DIRECTORY, TEST_VIDEOS_OUTPUT_DIRECTORY)
+
+# Calibrate camera
+success, cal_mtx, cal_dist = calibrate_camera(CAMERA_CALIBRATION_IMAGES, DEBUGGING_MODE)
+
+test_sample_images(TEST_IMAGES_DIRECTORY, TEST_IMAGES_OUTPUT_DIRECTORY, cal_mtx, cal_dist)
+#test_sample_videos(TEST_VIDEOS_DIRECTORY, TEST_VIDEOS_OUTPUT_DIRECTORY)
