@@ -1,13 +1,16 @@
 # Importing packages
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import numpy as np
 import cv2
 import os
+from moviepy.editor import VideoFileClip
+from LaneDetection import find_lanes
 
 # Environment variables
 TEST_IMAGES_DIRECTORY = 'test_images/'
+TEST_VIDEOS_DIRECTORY = 'test_videos/'
 TEST_IMAGES_OUTPUT_DIRECTORY = 'output_images/'
+TEST_VIDEOS_OUTPUT_DIRECTORY = 'output_videos/'
 CAMERA_CALIBRATION_IMAGES = 'camera_cal/'
 DEBUGGING_MODE = True  # False to suppress debugging output
 
@@ -15,9 +18,9 @@ DEBUGGING_MODE = True  # False to suppress debugging output
 # Function to test pipeline on test images
 def test_sample_images(test_image_dir, output_image_dir):
     # Get test images
-    image_paths = os.listdir(TEST_IMAGES_DIRECTORY)
-    if not os.path.exists(TEST_IMAGES_OUTPUT_DIRECTORY):
-        os.makedirs(TEST_IMAGES_OUTPUT_DIRECTORY)
+    image_paths = os.listdir(test_image_dir)
+    if not os.path.exists(output_image_dir):
+        os.makedirs(output_image_dir)
 
     # Generate matplotlib figs for display purposes
     fig, axes = plt.subplots(len(image_paths), 2, figsize=(30, 30))
@@ -26,7 +29,7 @@ def test_sample_images(test_image_dir, output_image_dir):
 
     for image_path in image_paths:
         # Read the image into memory
-        image = mpimg.imread(f'{TEST_IMAGES_DIRECTORY}{image_path}')
+        image = mpimg.imread(f'{test_image_dir}{image_path}')
 
         # Show the original image
         ax = axes[ax_ctr]
@@ -43,17 +46,26 @@ def test_sample_images(test_image_dir, output_image_dir):
         ax.title.set_text(f'Result: {image_path}')
 
         # Save the resultant image in the test directory
-        cv2.imwrite(f'{TEST_IMAGES_OUTPUT_DIRECTORY}{image_path}', image)
+        cv2.imwrite(f'{output_image_dir}{image_path}', image)
 
     # Show final plot
     plt.tight_layout()
     plt.show()
 
 
-def test_sample_videos():
+def test_sample_videos(test_video_dir, output_video_dir):
+    # Get test videos
+    video_paths = os.listdir(test_video_dir)
+    if not os.path.exists(output_video_dir):
+        os.makedirs(output_video_dir)
 
+    # Read each video, find lanes, write output video
+    for video_path in video_paths:
+        video = VideoFileClip(f'{test_video_dir}{video_path}')
+        processed_video = video.fl_image(find_lanes)
+        processed_video.write_videofile(f'{output_video_dir}{video_path}', audio=False)
 
 
 # START OF MAIN PROGRAM
 test_sample_images(TEST_IMAGES_DIRECTORY, TEST_IMAGES_OUTPUT_DIRECTORY)
-
+test_sample_videos(TEST_VIDEOS_DIRECTORY, TEST_VIDEOS_OUTPUT_DIRECTORY)
