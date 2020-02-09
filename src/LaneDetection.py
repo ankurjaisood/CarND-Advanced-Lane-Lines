@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import cv2
 import os
 
@@ -11,8 +12,17 @@ Algorithm Steps:
 5. Iterative Lane Detection Using Histogram and Polynomial Fitting
 '''
 
-# CAMERA CALIBRATION PARAMETERS
+# Camera calibration parameters
 CHESSBOARD_SIZE = (9, 6)
+
+# Thresholding parameters
+GRADIENT_THRES_MIN = 20
+GRADIENT_THRES_MAX = 100
+COLOUR_THRES_MIN = 170
+COLOUR_THRES_MAX = 255
+
+# Perspective transform parameters
+OFFSET = 100
 
 
 def calibrate_camera(calibration_images_dir, debug_mode=False):
@@ -72,15 +82,73 @@ def calibrate_camera(calibration_images_dir, debug_mode=False):
     return False, None, None
 
 
-def perspective_transform(image):
+def perspective_transform(image, debug_mode=False):
+    # Set source and destination points
+    img_size = (image.shape[1], image.shape[0])
+    src = np.float32([[200, 0], [200, 350], [1000, 0], [1000, 350]])
+    dst = np.float32([[OFFSET, OFFSET], [img_size[0] - OFFSET, OFFSET],
+                      [img_size[0] - OFFSET, img_size[1] - OFFSET],
+                      [OFFSET, img_size[1] - OFFSET]])
 
+    # Calculate perspective transform matrix
+    perspective_matrix = cv2.getPerspectiveTransform(src, dst)
+
+    # transform image
+    transformed_image = cv2.warpPerspective(image, perspective_matrix, img_size)
+
+    return transformed_image
+
+
+def threshold_image(image, debug_mode=False):
+    # Convert to HLS colour space and extract s channel
+    hls_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+    s_channel = hls_image[:, :, 2]
+
+    # Get grayscale image
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Sobel x
+    abs_sobelx = np.absolute(cv2.Sobel(gray_image, cv2.CV_64F, 1, 0))
+    scaled_sobel = np.uint8(255 * abs_sobelx / np.max(abs_sobelx))
+
+    # Threshold gradient and colour
+    thres_sobel = np.zeros_like(scaled_sobel)
+    thres_sobel[(scaled_sobel >= GRADIENT_THRES_MIN) & (scaled_sobel <= GRADIENT_THRES_MAX)] = 1
+    thres_s_channel = np.zeros_like(s_channel)
+    thres_s_channel[(s_channel >= COLOUR_THRES_MIN) & (s_channel <= COLOUR_THRES_MAX)] = 1
+
+    # Combine the two binary thresholds
+    combined_binary = np.zeros_like(thres_sobel)
+    combined_binary[(thres_sobel == 1) | (thres_s_channel == 1)] = 1
+
+    if debug_mode:
+        color_binary = np.dstack((np.zeros_like(thres_sobel), thres_sobel, thres_s_channel)) * 255
+
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Stacked thresholds')
+        ax1.imshow(color_binary)
+
+        ax2.set_title('Combined S channel and gradient thresholds')
+        ax2.imshow(combined_binary, cmap='gray')
+
+    return combined_binary
+
+
+def detect_and_fit_lines(image, debug_mode=False):
+    pass
 
 
 def find_lanes(image, mtx, dist, debug_mode=False):
 
     # Undistort using camera calibration
-    corrected_image = cv2.undistort(image, mtx, dist, None, mtx)
+    undistorted_image = cv2.undistort(image, mtx, dist, None, mtx)
+
+    # Colour and Gradient Thresholding
+    thresholded_image = threshold_image(undistorted_image, debug_mode)
 
     # Perspective transform
+    transformed_image = perspective_transform(thresholded_image, debug_mode)
 
-    return image
+    # Find lanes
+
+    return transformed_image

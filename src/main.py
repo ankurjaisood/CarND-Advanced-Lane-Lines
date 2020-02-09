@@ -11,11 +11,11 @@ TEST_VIDEOS_DIRECTORY = 'test_videos/'
 TEST_IMAGES_OUTPUT_DIRECTORY = 'output_images/'
 TEST_VIDEOS_OUTPUT_DIRECTORY = 'output_videos/'
 CAMERA_CALIBRATION_IMAGES = 'camera_cal/'
-DEBUGGING_MODE = True  # False to suppress debugging output
+DEBUGGING_MODE = False  # False to suppress debugging output
 
 
 # Function to test pipeline on test images
-def test_sample_images(test_image_dir, output_image_dir, calibration_matrix, calibration_dist):
+def test_sample_images(test_image_dir, output_image_dir, calibration_matrix, calibration_dist, debug_mode=False):
     # Get test images
     image_paths = os.listdir(test_image_dir)
     if not os.path.exists(output_image_dir):
@@ -37,15 +37,16 @@ def test_sample_images(test_image_dir, output_image_dir, calibration_matrix, cal
         ax.title.set_text(f'Orignal: {image_path}')
 
         # Run image through pipeline
+        res = find_lanes(image, calibration_matrix, calibration_dist, debug_mode)
 
         # Show the resultant image
         ax = axes[ax_ctr]
         ax_ctr += 1
-        ax.imshow(image)
+        ax.imshow(res)
         ax.title.set_text(f'Result: {image_path}')
 
         # Save the resultant image in the test directory
-        cv2.imwrite(f'{output_image_dir}{image_path}', image)
+        cv2.imwrite(f'{output_image_dir}{image_path}', res)
 
     # Show final plot
     plt.tight_layout()
@@ -70,5 +71,5 @@ def test_sample_videos(test_video_dir, output_video_dir):
 # Calibrate camera
 success, cal_mtx, cal_dist = calibrate_camera(CAMERA_CALIBRATION_IMAGES, DEBUGGING_MODE)
 
-test_sample_images(TEST_IMAGES_DIRECTORY, TEST_IMAGES_OUTPUT_DIRECTORY, cal_mtx, cal_dist)
+test_sample_images(TEST_IMAGES_DIRECTORY, TEST_IMAGES_OUTPUT_DIRECTORY, cal_mtx, cal_dist, DEBUGGING_MODE)
 #test_sample_videos(TEST_VIDEOS_DIRECTORY, TEST_VIDEOS_OUTPUT_DIRECTORY)
