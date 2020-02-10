@@ -16,13 +16,17 @@ Algorithm Steps:
 CHESSBOARD_SIZE = (9, 6)
 
 # Thresholding parameters
-GRADIENT_THRES_MIN = 20
+GRADIENT_THRES_MIN = 40
 GRADIENT_THRES_MAX = 100
 COLOUR_THRES_MIN = 170
 COLOUR_THRES_MAX = 255
 
 # Perspective transform parameters
 OFFSET = 100
+SRC_POINTS = [[150, 700], [450, 500], [850, 500], [1200, 700]]
+
+# Lane detection parameters
+
 
 
 def calibrate_camera(calibration_images_dir, debug_mode=False):
@@ -82,19 +86,27 @@ def calibrate_camera(calibration_images_dir, debug_mode=False):
     return False, None, None
 
 
-def perspective_transform(image, debug_mode=False):
+def perspective_transform(image, debug_mode=True):
     # Set source and destination points
     img_size = (image.shape[1], image.shape[0])
-    src = np.float32([[200, 0], [200, 350], [1000, 0], [1000, 350]])
-    dst = np.float32([[OFFSET, OFFSET], [img_size[0] - OFFSET, OFFSET],
-                      [img_size[0] - OFFSET, img_size[1] - OFFSET],
-                      [OFFSET, img_size[1] - OFFSET]])
+    src = np.float32(SRC_POINTS)
+    dst = np.float32([[OFFSET, img_size[1] - OFFSET], [OFFSET, OFFSET], [img_size[0] - OFFSET, OFFSET], [img_size[0] - OFFSET, img_size[1] - OFFSET]])
 
     # Calculate perspective transform matrix
     perspective_matrix = cv2.getPerspectiveTransform(src, dst)
 
     # transform image
     transformed_image = cv2.warpPerspective(image, perspective_matrix, img_size)
+
+    if debug_mode:
+        cv2.polylines(image, np.array([SRC_POINTS], dtype=np.int32), False, 1, 3)
+
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Original')
+        ax1.imshow(image)
+
+        ax2.set_title('Perspective Transform')
+        ax2.imshow(transformed_image)
 
     return transformed_image
 
@@ -135,7 +147,20 @@ def threshold_image(image, debug_mode=False):
 
 
 def detect_and_fit_lines(image, debug_mode=False):
-    pass
+    # Create a histogram of the bottom part of the image
+    histogram = np.sum(image[image.shape[0] // 2:, :], axis=0)
+
+    if debug_mode:
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Perspective Image')
+        ax1.imshow(image)
+
+        ax2.set_title('Histogram')
+        ax2.plot(histogram)
+
+    # Sliding window
+
+    return image
 
 
 def find_lanes(image, mtx, dist, debug_mode=False):
@@ -149,6 +174,7 @@ def find_lanes(image, mtx, dist, debug_mode=False):
     # Perspective transform
     transformed_image = perspective_transform(thresholded_image, debug_mode)
 
-    # Find lanes
+    # Find lines
+    detected_lines = detect_and_fit_lines(transformed_image, True)
 
-    return transformed_image
+    return detected_lines
